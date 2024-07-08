@@ -72,6 +72,13 @@ in
               provision steps. see `hcloud.server.provisioners`.
             '';
           };
+          postProvisioners = mkOption {
+            default = [ ];
+            type = with types; listOf attrs;
+            description = ''
+              provision steps. see `hcloud.server.provisioners`.
+            '';
+          };
           extraConfig = mkOption {
             default = { };
             type = attrs;
@@ -111,6 +118,9 @@ in
                 } \
                 bash /root/nixos-infect 2>&1 | tee /tmp/infect.log
               ''
+            ];
+          }] ++ configuration.postProvisioners ++ [{
+            remote-exec.inline = [
               "shutdown -r +1"
             ];
           }];
