@@ -108,25 +108,22 @@ in
               backups = configuration.backups;
               location = configuration.location;
               ssh_keys = allUsers;
-              provisioner = builtins.map
+              provisioner = let
+                connection = {
+                  type = "ssh";
+                  user = "root";
+                  host = "\${ self.ipv4_address }";
+                  private_key = config.provisioner.privateKeyFile;
+                };
+                in builtins.map
                 (provisioner:
                   if (builtins.hasAttr "file" provisioner) then {
                     "file" = ({
-                      connection = {
-                        type = "ssh";
-                        user = "root";
-                        host = "\${ self.ipv4_address }";
-                        private_key = config.provisioner.privateKeyFile;
-                      };
+                      inherit connection;
                     } // provisioner.file);
                   } else if (builtins.hasAttr "remote-exec" provisioner) then {
                     "remote-exec" = ({
-                      connection = {
-                        type = "ssh";
-                        user = "root";
-                        host = "\${ self.ipv4_address }";
-                        private_key = config.provisioner.privateKeyFile;
-                      };
+                      inherit connection;
                     } // provisioner.remote-exec);
                   } else
                     provisioner)
