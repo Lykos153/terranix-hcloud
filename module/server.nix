@@ -100,8 +100,9 @@ in
         allResources = mapAttrs'
           (name: configuration: {
             name = "${configuration.name}";
-            value = {
-              # todo : check if name contains _ which is not allowed by hcloud
+            value = 
+              assert ! lib.strings.hasInfix "_" configuration.name;
+              {
               name = configuration.name;
               image = configuration.image;
               server_type = configuration.serverType;
