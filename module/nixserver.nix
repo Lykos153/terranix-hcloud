@@ -10,6 +10,14 @@ let
 in
 {
 
+  options.hcloud.nixosInfect = mkOption {
+    description = ''
+      Path to a nixos-infect script
+    '';
+    type = lib.types.pathInStore;
+    default = nixosInfect;
+  };
+
   options.hcloud.nixserver = mkOption {
     default = { };
     description = ''
