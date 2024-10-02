@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ options, config, lib, pkgs, ... }:
 with lib;
 with types;
 let
@@ -114,6 +114,7 @@ in
                   type = "ssh";
                   user = "root";
                   host = "\${ self.ipv4_address }";
+                } // lib.optionalAttrs (options.provisioner.privateKeyFile.isDefined) {
                   private_key = config.provisioner.privateKeyFile;
                 };
                 in builtins.map
