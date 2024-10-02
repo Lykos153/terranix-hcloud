@@ -18,6 +18,15 @@ in
     default = nixosInfect;
   };
 
+  options.hcloud.exportConfigurations = mkOption {
+    type = with types; nullOr str;
+    default = null;
+    description = ''
+      Pull the generated nixos configurations from the nodes
+      and store them inside this directory.
+    '';
+  };
+
   options.hcloud.nixserver = mkOption {
     default = { };
     description = ''
@@ -127,7 +136,14 @@ in
                 bash /root/nixos-infect 2>&1 | tee /tmp/infect.log
               ''
             ];
-          }] ++ configuration.postProvisioners ++ [{
+          }] ++ configuration.postProvisioners
+          ++ (optional (config.hcloud.exportConfigurations != null) {
+            local-exec.command = ''
+              mkdir -p ${config.hcloud.exportConfigurations} && \
+              ${pkgs.openssh}/bin/scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r \
+                root@${lib.tfRef "self.ipv4_address"}:/etc/nixos ${config.hcloud.exportConfigurations}/${lib.tfRef "self.name"}
+            '';
+          }) ++ [{
             remote-exec.inline = [
               "shutdown -r +1"
             ];
