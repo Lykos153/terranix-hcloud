@@ -18,12 +18,27 @@ in
     default = nixosInfect;
   };
 
-  options.hcloud.exportConfigurations = mkOption {
+  options.hcloud.downloadFiles.targetDirectory = mkOption {
     type = with types; nullOr str;
     default = null;
     description = ''
       Pull the generated nixos configurations from the nodes
       and store them inside this directory.
+    '';
+  };
+
+  options.hcloud.downloadFiles.sources = mkOption {
+    type = with types; listOf str;
+    default = [];
+    example = [
+      "/etc/nixos/configuration.nix"
+      "/etc/nixos/hardware-configuration.nix"
+      "/etc/nixos/networking.nix"
+      "/etc/ssh/ssh_host_ed25519_key.pub"
+    ];
+    description = ''
+      List of files or directories to scp into targetDirectory
+      after nixos-infect has completed.
     '';
   };
 
@@ -137,13 +152,21 @@ in
               ''
             ];
           }] ++ configuration.postProvisioners
-          ++ (optional (config.hcloud.exportConfigurations != null) {
-            local-exec.command = ''
-              mkdir -p ${config.hcloud.exportConfigurations} && \
-              ${pkgs.openssh}/bin/scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r \
-                root@${lib.tfRef "self.ipv4_address"}:/etc/nixos ${config.hcloud.exportConfigurations}/${lib.tfRef "self.name"}
-            '';
-          }) ++ [{
+          ++ (optional (config.hcloud.downloadFiles.targetDirectory != null) {
+              local-exec.command = let
+                targetDir = "${config.hcloud.downloadFiles.targetDirectory}/${lib.tfRef "self.name"}";
+              in
+                ''
+                  mkdir -p ${targetDir} && \
+                ''
+                + lib.concatStrings (builtins.map (source: ''
+                    ${pkgs.openssh}/bin/scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r \
+                      root@${lib.tfRef "self.ipv4_address"}:${source} ${targetDir} \
+                  '')
+                  config.hcloud.downloadFiles.sources) + ''
+                  true
+                '';
+            }) ++ [{
             remote-exec.inline = [
               "shutdown -r +1"
             ];
