@@ -155,17 +155,10 @@ in
           ++ (optional (config.hcloud.downloadFiles.targetDirectory != null) {
               local-exec.command = let
                 targetDir = "${config.hcloud.downloadFiles.targetDirectory}/${lib.tfRef "self.name"}";
-              in
-                ''
-                  mkdir -p ${targetDir} && \
-                ''
-                + lib.concatStrings (builtins.map (source: ''
-                    ${pkgs.openssh}/bin/scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r \
-                      root@${lib.tfRef "self.ipv4_address"}:${source} ${targetDir} \
-                  '')
-                  config.hcloud.downloadFiles.sources) + ''
-                  true
-                '';
+              in lib.concatStringsSep " && \\\n" (["mkdir -p ${targetDir}"] ++ (builtins.map (source:
+                    "${pkgs.openssh}/bin/scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r \\
+                      root@${lib.tfRef "self.ipv4_address"}:${source} ${targetDir}")
+                  config.hcloud.downloadFiles.sources));
             }) ++ [{
             remote-exec.inline = [
               "shutdown -r +1"
